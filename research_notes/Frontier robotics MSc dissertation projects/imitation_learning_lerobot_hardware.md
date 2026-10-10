@@ -597,7 +597,7 @@ These are the key facts used in the verdicts; details and access levels are in S
   - Other generic detectors (e.g., Sentinel/STAC, FIPER) were **not verified**. Their repository README could not be found at the path guessed. Reading their methods sections is week-one work and the main novelty risk.
 - **(d) Strongest simple baseline, and why it might fail here.**
   - Baseline: thresholds on joint load, current and position error, plus a check that the gripper closed, plus a webcam check that the object is in the bin.
-  - Why it might fail: semantic failures (misplacement, wrong object) produce normal telemetry. Load readings may be coarse or noisy (estimated). FAR's false positives cost 10–20 pp at two positions.
+  - Why it might fail: semantic failures (misplacement, wrong object) produce normal telemetry. Load readings may be coarse or noisy (estimated). FAR's false positives cost 10–20 pp at two positions. LeRobot also caps gripper torque at 50%, dropping to 25% on overload, so gripper load saturates by design. That may blur the line between "holding" and "stalled on an object" (inference).
   - How to show it: ROC curves per failure class.
 - **(e) First-week test, and what would kill it.**
   1. Run a scripted grasp loop (no learning) on 3 objects: 30 successes and 30 staged empty or slipping grasps. Log telemetry at 30 Hz and compute AUROC.
@@ -620,13 +620,13 @@ These are the key facts used in the verdicts; details and access levels are in S
   | 2 Baseline | Pass | Telemetry thresholds named, with a mechanism for the silent classes. |
   | 3 Real gap | Pass | Only on natural failures; staged interference as a secondary test. FAR's large gains were all staged. |
   | 4 Method fit | Pass | Generative policies supply samples; telemetry is free. |
-  | 5 Nearest work | Partial | Closest is a 4-month-old MSc thesis; generic detector literature unverified. |
+  | 5 Nearest work | Partial | Closest on SO-101 is a 4-month-old MSc thesis (lerobot_far). Closest generic method is FAIL-Detect (RSS 2025, simulation code). Telemetry vs learned on a cheap arm: no overlap found, but the search was incomplete. |
   | 6 Feasibility | Pass | Reward-model VRAM unknown. |
   | 7 First-week test | Pass | Scripted grasp loop plus natural-failure census. |
   | 8 Useful if the method loses | Pass | The detectability map is useful regardless. |
 
 - **(i) Skills built.** Embedded telemetry; ROC and power analysis; generative policies; runtime monitoring for consequential autonomy decisions. This is relevant to autonomy and defence roles.
-- **(j) Bristol/BRL people.** None encountered.
+- **(j) Bristol/BRL people.** None appeared in my own sources. From the parallel BRL notes ([brl_staff_facilities.md](./brl_staff_facilities.md)): Psomopoulou (tactile grasp control: grasp and slip detection is the overlap) and Cao (UWE; tactile sensing, VLAs) are the nearest. There is no known BRL work on runtime failure detection.
 
 #### Candidate C: Pre-registered scripted-vs-learned boundary map on SO-101 (fallback, ranked 3rd)
 - **(a) Research question.** On an externally fixed task list, where does a calibrated scripted controller beat ACT (and SmolVLA where it fits in 12 GB) on SO-101? Which task properties predict the crossover: deformability, clearance, clutter or object optics?
