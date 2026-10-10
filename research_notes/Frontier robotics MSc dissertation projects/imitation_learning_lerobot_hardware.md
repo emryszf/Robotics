@@ -398,6 +398,7 @@ The chunk-boundary and latency niche is now crowded, with at least eight papers 
 ### Gaps
 - Full texts of ACT, Diffusion Policy, RTC, BID, SmolVLA and 2507.09061 were not readable. Their limitations and future-work sections are quoted only where a search snippet gave them.
 - Not searched (budget exhausted): flow-matching policy variants (streaming, one-step, consistency); data quality and scaling studies; curation methods; noise-space RL fine-tuning of diffusion/flow policies; Q-chunking.
+- Runtime failure detection: only FAIL-Detect's README was read. Its real-robot results, and other detectors (Sentinel/STAC, FIPER), were not verified.
 - Whether 2607.24008, 2605.25537 or 2511.04421 test on cheap arms: unknown.
 - The second real task in 2608.15938 and the hardware used: unknown.
 
@@ -511,6 +512,9 @@ These are the key facts used in the verdicts; details and access levels are in S
 - The FAR proprioceptive monitor on SO-101 gave 0 to +10 pp under natural conditions and +42/+68 pp under staged interference, and false positives cost success — [lerobot_far experiments](https://github.com/HyuanTan/lerobot_far/blob/main/docs/experiments.md) [R]
 - LeRobot v0.6.0 rollout strategies (sentry, dagger), intervention flags and reward models (SARM, Robometer, TOPReward) — [v0.6.0 blog](https://github.com/huggingface/blog/blob/main/lerobot-release-v060.md) [R]
 - Servo telemetry registers are readable: Present_Load, Present_Current, Present_Temperature — [tables.py](https://github.com/huggingface/lerobot/blob/main/src/lerobot/motors/feetech/tables.py) [R]
+- Default SO follower servo gains are P = 16, I = 0, D = 32, and the gripper is torque-limited to 50% (25% on overload) "to avoid burnout" — [config_so_follower.py](https://github.com/huggingface/lerobot/blob/main/src/lerobot/robots/so_follower/config_so_follower.py) [V]; [so_follower.py](https://github.com/huggingface/lerobot/blob/main/src/lerobot/robots/so_follower/so_follower.py) [V]
+- FAIL-Detect (RSS 2025) detects failures of diffusion and flow policies without failure data, using learned uncertainty scores and a conformal band; released code is simulation-only (robomimic) — [FAIL-Detect README](https://github.com/CXU-TRI/FAIL-Detect) [V]
+- In simulation, open-loop chunks collapse under stochastic perturbation (BID Push-T: ah=8 falls from 0.884 to 0.582; ah=1 holds 0.805) — [bid_diffusion README](https://github.com/YuejiangLIU/bid_diffusion) [V]
 - The chunk-handling niche is crowded: RTC (NeurIPS 2025), training-time RTC (Dec 2025), Legato (Feb 2026), action-prior denoising (May 2026), DREAM-Chunk (Jun 2026), FutureRTC (Jul 2026), "Revisiting open-loop" (Aug 2026) — sources in Section 4
 - Quantised ACT on an 8 GB Jetson is already published (Aug 2026) — [arXiv 2608.03938](https://arxiv.org/abs/2608.03938) [S]
 - 12 GB VRAM envelopes — [hardware_guide.mdx](https://github.com/huggingface/lerobot/blob/main/docs/source/hardware_guide.mdx) [R]
@@ -568,7 +572,7 @@ These are the key facts used in the verdicts; details and access levels are in S
   | 8 Useful if the method loses | Pass | The error budget stands on its own. |
 
 - **(i) Skills built.** Metrology and ISO 9283 statistics; servo identification and control; kinematics and IK; IL training and evaluation; experimental design. These map onto robotics, GNC and applied-ML roles.
-- **(i-b) Optional second design variable.** Absolute vs relative actions. LeRobot implements relative actions only for the pi family, so using them with ACT needs porting (estimated small effort). It is a cheap way to test whether re-referencing to the measured state each chunk absorbs steady-state offsets — [action_representations.mdx](https://github.com/huggingface/lerobot/blob/main/docs/source/action_representations.mdx) [V]
+- **(a′) Optional second design variable.** Absolute vs relative actions. LeRobot implements relative actions only for the pi family, so using them with ACT needs porting (estimated small effort). It is a cheap way to test whether re-referencing to the measured state each chunk absorbs steady-state offsets — [action_representations.mdx](https://github.com/huggingface/lerobot/blob/main/docs/source/action_representations.mdx) [V]
 - **(j) Bristol/BRL people.** None appeared in my own sources. The parallel BRL staff notes ([brl_staff_facilities.md](./brl_staff_facilities.md), whose underlying sources are search-snippet or partial reads) report:
   - **Efi Psomopoulou** (UoB Senior Lecturer from 2025): robot control and physical interaction, tactile grasp control; co-investigator on the Horizon Europe MANiBOT bimanual-manipulation project.
   - **Nathan Lepora** (UoB Tactile Robotics Group): 3D-printed tactile sensors; sim-to-real RL on a UR5.
@@ -651,7 +655,7 @@ These are the key facts used in the verdicts; details and access levels are in S
 
   Low novelty. Best used as a chapter inside A or B.
 - **(i) Skills built.** Calibration, IK, perception pipelines, evaluation.
-- **(j) Bristol/BRL people.** None encountered.
+- **(j) Bristol/BRL people.** None appeared in my own sources. The parallel BRL notes found no 2023–2026 BRL imitation-learning publication ([brl_staff_facilities.md](./brl_staff_facilities.md)).
 
 #### Candidate D: 3pi+ with downward optical flow as a slip instrument (pass to the adaptive-control stream; not an imitation-learning candidate)
 - **(a) Research question.** At the 3pi+'s achievable accelerations, how large are slip-induced odometry and velocity errors across ordinary lab surfaces and payloads? Does flow-based feedback or adaptation reduce path error beyond a well-tuned encoder controller with acceleration limits?
@@ -674,6 +678,7 @@ These are the key facts used in the verdicts; details and access levels are in S
   | 8 Useful if the method loses | Pass, as a characterisation |
 
   Keep it as an instrument.
+- **(j) Bristol/BRL people.** Paul O'Dowd, per the parallel BRL notes ([brl_staff_facilities.md](./brl_staff_facilities.md)): MSc Robotics Programme Director and Robotics Science & Systems unit director. His GitHub has a run of Pololu 3pi+ add-on boards (an I2C extension board, IR communication boards, a joystick board and an M5Core2 hat), so he is the natural person to ask about mounting a flow sensor on the 3pi+.
 
 #### Tempting but fails (with the filter it fails)
 
@@ -690,14 +695,14 @@ These are the key facts used in the verdicts; details and access levels are in S
 | 3pi+ visual imitation with the XIAO ESP32-S3 Sense | Filters 2 and 4 | Colour or ArUco tracking; cheap flow chip. |
 | 3pi+ UWB multi-robot coordination | Filter 6 | Needs more robots and anchors; BRL unconfirmed. |
 | Evaluation statistics only ("how many trials does a cheap-arm benchmark need?") | Filter 1 | It is statistics, not robotics. Still, build its power analysis into A, B or C. |
-| Unresolved, not failed: HIL-SERL RL vs DAgger per human-hour on SO-101 | Filter 2 risk | DAgger is a strong baseline; LeRobot calls HIL-SERL "very sensitive to the intervention strategy". Nearest work (the HIL-SERL paper, noise-space RL fine-tuning) not verified here. Pass to the RL post-training stream. |
+| Unresolved, not failed: HIL-SERL RL vs DAgger per human-hour on SO-101 | Filter 2 risk | DAgger is a strong baseline; LeRobot calls HIL-SERL "very sensitive to the intervention strategy". The original HIL-SERL code targets a **Franka with impedance controllers over ROS** (RAM insertion, USB pick-and-insert, handover, egg flip) and claims "near-perfect success rates". Its README cites it as arXiv 2410.21845 (2024); a later journal version was not verified — [hil-serl README](https://github.com/rail-berkeley/hil-serl) [V]. Whether the method's benefits survive a position-controlled, backlash-prone servo arm with no impedance control is untested (no overlap found); this is a real physical difference. Noise-space RL fine-tuning not verified. Pass to the RL post-training stream. |
 
 #### What to ask BRL for, exactly
 1. Any SO-100 or SO-101 leader or follower arms, or Koch or OMX arms. This saves the £200 or provides a leader for demonstrations.
 2. 3D-printer access with PLA+ and TPU 95A, for the SO-101 printed parts.
 3. Motion-capture time (OptiTrack or Vicon), or a dial indicator and height gauge, for ISO 9283-style ground truth.
 4. A GPU with at least 24 GB, on a cluster or workstation, for SmolVLA at normal batch size or π0.5 fine-tuning.
-5. A potential supervisor in manipulation or robot learning (leads in Candidate A (j), unverified).
+5. A supervisor or co-supervisor in manipulation or physical interaction. Psomopoulou, Lepora and Tzemanaki at UoB, and Cao at UWE, per the parallel BRL notes. For the 3pi+ instrument idea, O'Dowd. Also ask whether the UWE "Lecturer in Robot Learning" post advertised Jun–Jul 2026 has been filled.
 
 ### Gaps
 - The novelty of A and B is "no overlap found in an incomplete search". Not searched (shared search budget exhausted):
@@ -707,7 +712,8 @@ These are the key facts used in the verdicts; details and access levels are in S
   - The HIL-SERL paper.
   - Noise-space RL fine-tuning.
   - BRL staff.
-- BRL equipment and staff: not verified. The two names given are unverified leads.
+- BRL staff names come from the parallel notes ([brl_staff_facilities.md](./brl_staff_facilities.md)), which are themselves mostly search-snippet level. BRL equipment (arms, printers, motion capture, GPUs) is not verified.
+- Sentinel/STAC and FIPER code READMEs: not found at the repository paths tried; methods not verified.
 - All thresholds in the kill tests are estimates and must be set against measured ArUco noise and the task tolerances.
 
 #### Source access log
@@ -716,6 +722,12 @@ These are the key facts used in the verdicts; details and access levels are in S
   - HF blog (GitHub copies): lerobot-release-v040, lerobot-release-v050, lerobot-release-v060, smolvla, grabette, _blog.yml.
   - Hardware repos: [TheRobotStudio SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100); [LeKiwi README](https://github.com/SIGRobotics-UIUC/LeKiwi) and [BOM.md](https://github.com/SIGRobotics-UIUC/LeKiwi/blob/main/BOM.md); [Koch low_cost_robot](https://github.com/AlexanderKoch-Koch/low_cost_robot); [XLeRobot](https://github.com/Vector-Wangel/XLeRobot); [pimoroni/pmw3901-python](https://github.com/pimoroni/pmw3901-python); [Pololu 3pi+ 32U4 library](https://github.com/pololu/pololu-3pi-plus-32u4-arduino-library).
   - Community and student projects: [so101-error-anatomy](https://github.com/tucasteixeira-debug/so101-error-anatomy); [khushi02 SO-101 ACT](https://github.com/khushi02/so101-imitation-learning-ACT); [lerobot_far README](https://github.com/HyuanTan/lerobot_far) and [experiments.md](https://github.com/HyuanTan/lerobot_far/blob/main/docs/experiments.md); [Revisiting-Open-Loop code index](https://github.com/Michaelszeng/Revisiting-Open-Loop-Execution-in-Robotics).
+- **Read verbatim via curl of raw GitHub files [V]** (after the coordinator's tip):
+  - LeRobot docs: async.mdx, smolvla.mdx, third_party_sensors.mdx, in full; action_representations.mdx, processors_robots_teleop.mdx, omx.mdx and rebot_b601.mdx, searched for key terms.
+  - LeRobot code: `src/lerobot/robots/so_follower/so_follower.py` and `config_so_follower.py`.
+  - Paper code READMEs: [FAIL-Detect](https://github.com/CXU-TRI/FAIL-Detect), [real-time-chunking-kinetix](https://github.com/Physical-Intelligence/real-time-chunking-kinetix), [bid_diffusion](https://github.com/YuejiangLIU/bid_diffusion), [bid_lerobot](https://github.com/Jubayer-Hamid/bid_lerobot), [hil-serl](https://github.com/rail-berkeley/hil-serl).
+  - Not found at the guessed path: agiachris/STAC README.
+- **Consulted (local):** the parallel BRL notes [brl_staff_facilities.md](./brl_staff_facilities.md), for staff names only; their own sources are mostly search-snippet level.
 - **Partly read:** [LeRobot releases page](https://github.com/huggingface/lerobot/releases) (first 100k of 137k characters).
 - **Abstract-level via a third party:** DP-ACT (*Scientific Reports* 2026), via [a course-journal issue](https://github.com/deepcharles/macs3050-journal/issues/82).
 - **Search-result summaries only (pages not opened):**
