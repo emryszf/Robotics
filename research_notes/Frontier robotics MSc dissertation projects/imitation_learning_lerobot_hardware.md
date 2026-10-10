@@ -568,7 +568,16 @@ These are the key facts used in the verdicts; details and access levels are in S
   | 8 Useful if the method loses | Pass | The error budget stands on its own. |
 
 - **(i) Skills built.** Metrology and ISO 9283 statistics; servo identification and control; kinematics and IK; IL training and evaluation; experimental design. These map onto robotics, GNC and applied-ML roles.
-- **(j) Bristol/BRL people.** None encountered in the sources read. Leads to verify (prior knowledge, unverified this session): Nathan Lepora (tactile and dexterous manipulation) and Efi Psomopoulou (grasping and manipulation), both University of Bristol.
+- **(i-b) Optional second design variable.** Absolute vs relative actions. LeRobot implements relative actions only for the pi family, so using them with ACT needs porting (estimated small effort). It is a cheap way to test whether re-referencing to the measured state each chunk absorbs steady-state offsets — [action_representations.mdx](https://github.com/huggingface/lerobot/blob/main/docs/source/action_representations.mdx) [V]
+- **(j) Bristol/BRL people.** None appeared in my own sources. The parallel BRL staff notes ([brl_staff_facilities.md](./brl_staff_facilities.md), whose underlying sources are search-snippet or partial reads) report:
+  - **Efi Psomopoulou** (UoB Senior Lecturer from 2025): robot control and physical interaction, tactile grasp control; co-investigator on the Horizon Europe MANiBOT bimanual-manipulation project.
+  - **Nathan Lepora** (UoB Tactile Robotics Group): 3D-printed tactile sensors; sim-to-real RL on a UR5.
+  - **Antonia Tzemanaki** (UoB): Dexterous Manipulation and Wearable Robotics group.
+  - **Guanqun Cao** (UWE Lecturer): tactile sensing, VLAs.
+  - A **UWE "Lecturer in Robot Learning"** post was advertised Jun–Jul 2026; appointee unknown.
+  - The same notes found **no 2023–2026 BRL imitation-learning publication**.
+
+  Psomopoulou is the closest fit for a physical-interaction and error-budget dissertation.
 
 #### Candidate B: When can a cheap arm tell it is failing? Free servo telemetry vs learned progress or uncertainty signals under natural failures (ranked 2nd)
 - **(a) Research question.** On an SO-101 running imitation-learning policies, which *naturally occurring* failure classes can be detected at runtime from servo telemetry (Present_Load, Present_Current, |Goal − Present|)? The classes in scope are empty grasp, slip, stall or collision, misplacement and wrong object. When does a learned signal detect them earlier or with fewer false alarms? Candidate learned signals are LeRobot reward or progress models (SARM, Robometer, TOPReward) and the dispersion of sampled action chunks.
@@ -579,7 +588,13 @@ These are the key facts used in the verdicts; details and access levels are in S
 - **(c) Nearest work, and what remains open.** The open slot is per-class detectability with natural failures on cheap hardware, comparing telemetry and learned signals head-to-head.
   - **lerobot_far**: a proprioceptive gripper monitor with retries. It reports changes in success rate, not precision or recall. Its README says it reads Present_Load, while its experiments doc describes gripper position or feedback, so the two conflict.
   - **CARE** (arXiv 2609.24118) and **RePO-VLA** (arXiv 2605.09410) address VLA failure recovery (titles only, PREPRINT).
-  - Generic failure detectors for generative policies were **not verified this session**. Reading their methods sections is week-one work and the biggest novelty risk.
+  - **FAIL-Detect** (RSS 2025) is the strongest generic methods-level overlap for the "learned signal" arm.
+    - It learns uncertainty scores (logpZO, RND) from training-data (observation, action) pairs, with no failure data, and thresholds them with conformal prediction.
+    - It supports diffusion and flow policies.
+    - Its released code covers robomimic simulation tasks only.
+    - Source: [FAIL-Detect README](https://github.com/CXU-TRI/FAIL-Detect) [V]
+    - Not checked: its real-robot results, and whether it was ever compared with proprioceptive or telemetry baselines.
+  - Other generic detectors (e.g., Sentinel/STAC, FIPER) were **not verified**. Their repository README could not be found at the path guessed. Reading their methods sections is week-one work and the main novelty risk.
 - **(d) Strongest simple baseline, and why it might fail here.**
   - Baseline: thresholds on joint load, current and position error, plus a check that the gripper closed, plus a webcam check that the object is in the bin.
   - Why it might fail: semantic failures (misplacement, wrong object) produce normal telemetry. Load readings may be coarse or noisy (estimated). FAR's false positives cost 10–20 pp at two positions.
