@@ -3,8 +3,13 @@
 **Read this first: how much I could check, and how to read the tags**
 - **Blocked hosts (session egress policy).** These hosts were blocked by policy (proxy 403, or WebFetch DNS failure): arxiv.org, huggingface.co (including LeRobot's hosted docs and model cards), openreview.net, every *.github.io project page, pi.website (Physical Intelligence blog), jetson-ai-lab.com, developer.nvidia.com, science.org, frontiersin.org, ri.cmu.edu, publications.ri.cmu.edu, semanticscholar.org, proceedings.mlr.press, roboticsproceedings.org and alphaxiv.org. I did **not** route around the blocks.
 - **What I read instead.** github.com and raw.githubusercontent.com were reachable, so primary sources are READMEs, LeRobot doc sources, Jetson AI Lab page sources, and project-page HTML read from the authors' own GitHub repos.
+- **Full papers read from author-hosted PDFs.** Following the coordinator's tip, I downloaded PDFs the authors committed to their own GitHub repos (via raw.githubusercontent.com) and read them locally:
+  - **HIL-SERL**, from `hil-serl/hil-serl.github.io/static/hil-serl-paper.pdf`: pages 1–6, 9–14 and 19–21 read (abstract, method, task descriptions, results tables, discussion and limitations).
+  - **TailRL**, from `Zanette-Labs/TailRL-website/static/TailRL.pdf`: pages 1–15 read (all of the main text through the conclusion; appendices not read).
+  - **MaxRL preprint**, from `Zanette-Labs/MaxRL/site/static/pdf/MaxRL_Preprint.pdf`: pages 1–8 and 11–13 read (method, estimator, ImageNet and maze set-up, conclusion and limitations). This is the preprint; the ICML 2026 camera-ready may differ.
+  - **"Can Large Reasoning Models Self-Train?" (SRT)**, from the same MaxRL repo: pages 1–2 read (abstract and introduction).
 - **Search budget ran out.** The web-search budget (200 calls per turn, shared by all parallel agents) ran out partway through. These planned searches were **not** run:
-  - real-robot numbers for PA-RL, ConRFT, πRL and HIL-SERL;
+  - real-robot numbers for PA-RL, ConRFT and πRL (HIL-SERL's numbers were later verified from the authors' PDF);
   - π*0.6/RECAP;
   - multiple-choice learning (MCL) and winner-takes-all (WTA) losses, and learned MPPI/CEM proposals;
   - follow-ups to Winfield's consequence engine;
@@ -81,15 +86,32 @@
 ## Q2. Which RL post-training methods have real-robot evidence at a scale an MSc could reproduce?
 
 ### Takeaway
-- **Reproducible at MSc scale (documented):** only HIL-SERL as packaged in LeRobot for SO-100/101 (one NVIDIA GPU plus a gamepad; "a few hours" claimed) and DSRL (RL over a diffusion policy's noise space, needing only black-box access) have documented real-robot paths at that scale.
+- **Reproducible at MSc scale (documented):** only HIL-SERL and DSRL have documented real-robot paths at that scale.
+  - **HIL-SERL**, verified from the paper: 100% success on Franka tasks after 1–2.5 h of real-world training (6 h for timing-belt assembly), with 20–30 demonstrations, SpaceMouse corrections and a single RTX 4090. LeRobot packages it for SO-100/101 (one NVIDIA GPU plus a gamepad; "a few hours" claimed).
+  - **DSRL:** RL over a diffusion policy's noise space, needing only black-box access to the policy.
 - **Out of reach:** the VLA-scale methods (SimpleVLA-RL, VLA-RL, RIPT-VLA, πRL) are simulation-first and multi-GPU (3–16 GPUs, A800-class). Their real-robot evidence is thin or undocumented in their READMEs.
 - **Relevant to the student's code:** RIPT-VLA uses exactly the leave-one-out (RLOO) advantage the student has implemented.
 
 ### Cited Findings
-- **HIL-SERL (Luo, Xu, Wu, Levine).** PREPRINT arXiv 2410.21845; the Science Robotics venue was **not verified** (science.org blocked).
-  - **Robot and tasks:** a Franka arm; walkthroughs for "RAM Insertion", "USB Pickup and Insertion", "Object Handover" and "Egg Flip". The learner is JAX-based; the README gives no GPU model or training time — [rail-berkeley/hil-serl README](https://github.com/rail-berkeley/hil-serl) [README read].
-  - **Project page:** "We first tele-operate the robot to collect positive and negative samples and train a binary reward classifier"; evaluation over "100 Trials" per task. No numbers appear in the HTML — [project page source](https://github.com/hil-serl/hil-serl.github.io) [page source read].
-  - The paper PDF exceeded the fetch size limit, so it was not read.
+- **HIL-SERL (Luo, Xu, Wu, Levine; UC Berkeley).** The paper is dated "Oct 2024" (PREPRINT arXiv 2410.21845). The Science Robotics venue was **not verified** (science.org blocked).
+  - Sources: [paper PDF hosted in the authors' project repo](https://github.com/hil-serl/hil-serl.github.io/blob/main/static/hil-serl-paper.pdf) [pp. 1–6, 9–14, 19–21 read]; [rail-berkeley/hil-serl README](https://github.com/rail-berkeley/hil-serl) [README read].
+  - **Headline claims.**
+    - Abstract: "near-perfect success rates and fast cycle times within just 1 to 2.5 hours of training", and "an average 2x improvement in success rate and 1.8x faster execution" over imitation-learning baselines.
+    - Table 1a lists per-task training times of 1–2.5 h for every task except **Timing Belt Assembly, which took 6 h**. So the "1 to 2.5 hours" headline excludes the hardest task.
+    - Table 1a averages: BC (HG-DAgger with the same human data) reaches 49.7% success; HIL-SERL reaches 100% ("+101%"). Cycle time drops from 9.6 s to 5.4 s.
+    - All metrics come from "100 trials per task", except IKEA whole assembly (10 trials).
+  - **Compute.** Training time "includes all scripted motion, policy rollouts, intended stops, as well as onboard computation which is carried on a single NVIDIA RTX 4090 GPU".
+  - **Robot and method.**
+    - Franka arm(s): single- and dual-arm tasks such as RAM, SSD and USB insertion, IKEA, car dashboard, handover, timing belt, Jenga whipping and object flipping.
+    - Actor at "10 Hz"; ImageNet-pretrained ResNet-10 encoder; RLPD off-policy learner.
+    - SpaceMouse human interventions; demo buffer "usually on the range of 20-30" demonstrations.
+    - A binary reward classifier per task, trained from positive and negative demonstrations. The authors "also collect additional potential false positive or false negative examples if necessary". This shows reward-verifier errors have to be patched by hand in real-robot RL.
+  - **Ablation (Table 1b): without human corrections, learning fails.** "HIL-SERL no demo no itv" scores 0 on RAM insertion, dashboard assembly and object flipping. "HIL-SERL no itv" averages 49. On the same tasks, Diffusion Policy averages 34, BC 31 and HG-DAgger 39 (DP and BC trained on 200 demonstrations). The strongest other RL baseline, IBRL, averages 57: 75 / 0 / 95.
+  - **Limitations quoted (Section 6):**
+    - "it remains uncertain whether this method can be further extended to tasks with significantly longer horizons, where the sample complexity issue becomes more pronounced";
+    - "we did not perform extensive randomization in our experiments, nor did we test the method's generalization capability in unstructured environments";
+    - "each task still requires training from scratch".
+  - **Its classical-baseline argument (authors' claim, Section 5.2).** Mixed-integer contact planners (Hogan & Rodriguez 2016; Aceituno-Cabezas & Rodriguez 2020) "can quickly become computationally intractable as the planning horizon increases" and "require accurate state estimators".
 - **LeRobot HIL-SERL (SO-100/SO-101).**
   - **Hardware:** "A Nvidia GPU" plus "A real robot with a follower and leader arm (optional if you use the keyboard or the gamepad)".
   - **Training claim:** a policy "on a real robot in just a few hours".
@@ -137,6 +159,17 @@
   - RLinf news: π0/π0.5 RL fine-tuning (2025/10); "real-world RL with Franka" (2025/12); "DSRL for Pi0" (2026/02); "RECAP" (2026/04); GR00T-N1.6/N1.7 (2026/06); π0-FAST RL (2026/09).
   - Supported hardware includes "AgileX Piper, and SO101" among others.
   - **No real-world results or compute numbers in the README** — [RLinf README](https://github.com/RLinf/RLinf) [README read].
+  - **But RLinf's own SO101 page says "RLinf does not yet provide a supported real-world task or training workflow for SO101"**. It covers only hardware checks: joint motion, gripper, leader-arm teleoperation — [RLinf so101.rst](https://github.com/RLinf/RLinf/blob/main/docs/source-en/rst_source/examples/embodied/so101.rst) [doc read].
+- **RECAP (the π*0.6 method) as reproduced in RLinf.**
+  - Expansion: "RL with Experience and Corrections via Advantage-conditioned Policies".
+  - "RECAP is an offline policy optimization method that requires no online environment interaction". Four stages: compute returns, train a value model, compute advantages, then classifier-free-guidance training of the policy.
+  - Value model: SigLIP2-so400m + Gemma3-270M with a 201-bin categorical critic.
+  - Advantages are labelled by quantile: the top 30% are positive by default.
+  - Policy: π0.5 (OpenPI, PyTorch).
+  - RLinf reproduction: LIBERO-10 Task 0 goes from 48.8% (few-shot SFT) to 66.5% after one RECAP iteration. Caveats: a single task and single iteration, results depend on `failure_reward` and the quantile, and "the value model can overfit".
+  - The doc calls RECAP "especially suited for real-robot scenarios where large-scale online sampling is impractical", but reports no real-robot results.
+  - The doc gives no paper citation or date; GPU requirements not specified.
+  - Source: [RLinf recap.rst](https://github.com/RLinf/RLinf/blob/main/docs/source-en/rst_source/examples/embodied/recap.rst) [doc read].
 - **Deep Model Predictive Optimization (DMPO; Sacks, Rana, Huang, Spitzer, Shi, Boots).** PREPRINT arXiv 2310.04590; venue not stated.
   - Included here because it is RL post-training of a *sampling-based controller*, with real-robot evidence. It "learns the inner-loop of an MPC optimization algorithm directly via experience" (a learned residual on MPPI).
   - **Real quadrotor:** it "can outperform the best MPC algorithm by up to 27% with fewer samples" and an end-to-end model-free RL policy "by 19%", "with 4.3X less memory" — [jisacks/dmpo README](https://github.com/jisacks/dmpo) [README read].
@@ -144,6 +177,8 @@
 ### Inferences
 - **The realistic MSc path for real-robot RL is LeRobot HIL-SERL on an SO-101.**
   - Cost: one GPU plus tens of demonstration and classifier episodes, then hours of supervised interaction.
+  - The original HIL-SERL ran on "a single NVIDIA RTX 4090 GPU" (24 GB). I found no documented figure for a 12 GB card in LeRobot's HIL-SERL. *Estimated* feasible on an RTX 3060, because the learner is SAC with a ResNet-10 encoder at 128×128 (or 64×64) images. This should be measured in week 1.
+  - The ablation shows human corrections are not optional (0% without demonstrations or interventions). Budget human time for the whole training run, not just the demonstrations.
   - It uses SAC (critic-based, off-policy), not group-relative objectives. Group-relative methods (RLOO, MaxRL, TailRL) need several rollouts from the *same* context (RIPT-VLA defaults to 8). On a physical robot that means repeated identical resets, which is impractical without automated resets.
   - So group-relative or tail objectives are, in practice, a **simulation** tool in robotics.
   - *Estimated*: the human reset time for 8 rollouts × many contexts is the binding cost; not measured.
@@ -151,10 +186,12 @@
 - **DMPO is the strongest sourced evidence that learned proposals can beat MPPI at a fixed sample budget, and it is on hardware.** This is the methods-level overlap any "learned proposals for sampling-based control" dissertation must beat or distinguish itself from.
 
 ### Gaps
-- **Unverified headline numbers** (sources blocked and search budget exhausted): HIL-SERL training times and success rates, ConRFT's success and minutes of online fine-tuning, PA-RL's real-world gains, πRL's LIBERO/ManiSkill numbers, and SimpleVLA-RL's real-robot hardware.
-  - *Background knowledge, not verified this session:* HIL-SERL reported near-perfect success after roughly 1–2.5 h of training per task. Treat as unverified.
-- **π\*0.6 / RECAP (Physical Intelligence, Nov 2025):** pi.website blocked and not searched. The only sourced trace is RLinf adding "RECAP" in 2026/04 — [RLinf README](https://github.com/RLinf/RLinf).
-  - *Background knowledge, unverified:* RECAP stands for RL with Experience and Corrections via Advantage-conditioned Policies, and was reported on espresso-making, laundry-folding and box-assembly tasks.
+- **Unverified headline numbers** (sources blocked and search budget exhausted): ConRFT's success and minutes of online fine-tuning, PA-RL's real-world gains, πRL's LIBERO/ManiSkill numbers, and SimpleVLA-RL's real-robot hardware.
+- **HIL-SERL figures are now verified** from the authors' PDF (see Cited Findings).
+- **Not read in the HIL-SERL paper:** pages 7–8 and 15–18 (some method details and analysis) and the supplementary material (per-task set-up, total human-intervention time).
+- **π\*0.6 / RECAP (Physical Intelligence, Nov 2025).** pi.website was blocked and not searched, so PI's own claims are **unread**: real-robot tasks, throughput and failure-rate gains, hours of operation, robot fleet and compute.
+  - The method's name and structure are sourced from RLinf's reproduction (Cited Findings above).
+  - *Background knowledge, unverified:* PI reported espresso-making, laundry-folding and box-assembly tasks.
 - **No community SO-101 RL results** (HIL-SERL or RLinf) were found; not searched.
 - **No 2026 real-robot RL post-training papers** beyond the RLinf news items were searched (budget exhausted).
 
@@ -205,6 +242,12 @@
   - Once false positives are costed, the optimal number of samples can be under 10, sometimes zero.
   - Sources: [arXiv](https://arxiv.org/abs/2411.17501v2), [review](https://www.themoonlight.io/en/review/inference-scaling-flaws-the-limits-of-llm-resampling-with-imperfect-verifiers) [search summary].
   - "Variation in Verification" (ICLR 2026) describes diminishing returns as verifier quality falls — [ICLR 2026 PDF](https://proceedings.iclr.cc/paper_files/paper/2026/file/ea21628f0fc0de542373be4c88343478-Paper-Conference.pdf) [search summary].
+- **Training against a proxy verifier, LLM evidence from the MaxRL/TailRL group — "Can Large Reasoning Models Self-Train?" (SRT; Shafayat, Tajwar, Salakhutdinov, Schneider, Zanette; venue not shown on the pages read).**
+  - SRT uses majority voting over the model's own samples as the reward.
+  - "the self-generated proxy reward initially correlated with correctness can incentivize reward hacking, where confidently incorrect outputs are favored".
+  - The authors frame the opportunity as a positive "generation-verification gap", where "generating correct solutions is challenging, but verifying their correctness is relatively easy". This is the LLM form of criterion (b) in Q6.
+  - Source: [PDF hosted in Zanette-Labs/MaxRL repo](https://github.com/Zanette-Labs/MaxRL/blob/master/site/static/pdf/srt_paper.pdf) [pp. 1–2 read].
+- **Robot RL already patches verifier errors by hand.** HIL-SERL's binary success classifiers needed "additional potential false positive or false negative examples if necessary" — [HIL-SERL paper](https://github.com/hil-serl/hil-serl.github.io/blob/main/static/hil-serl-paper.pdf) [read].
 - **Planner exploitation of model or verifier error (control / model-based RL):**
   - **"The Tail and the Judge"** (S. Ramasubramanian, CMU MSR thesis, CMU-RI-TR-26-90, 28 July 2026; not peer-reviewed). A planner that maximises predicted return "will seek out exactly the regions where its world model is most optimistically wrong". The resulting loss is linked to the sharpness of the model's loss landscape, and sharpness-aware training of the world model alone yields gains — [thesis PDF](https://publications.ri.cmu.edu/storage/publications/2026/07/MSR_Thesis__1__20260731134034.pdf), [talk page](https://www.ri.cmu.edu/event/the-tail-and-the-judge-better-policy-gradients-and-world-models-for-reinforcement-learning/) [search summary only; both blocked].
   - **"A Control Theory of Predictability in Latent World Models"** (PREPRINT arXiv 2607.10362, July 2026; ID from search summary, not opened). Single-step validation error is "essentially uncorrelated with control success", whereas fidelity on the planner-reachable distribution tracks it.
@@ -237,7 +280,7 @@
 ## Q4. What are MaxRL and TailRL, and have pass@k-aware or tail objectives been used for robot policies?
 
 ### Takeaway
-- **Both papers exist and are recent, from Andrea Zanette's group at CMU.** Neither contains any robotics or continuous-control experiment.
+- **Both papers exist and are recent, from Andrea Zanette's group at CMU.** I read both main texts from author-hosted PDFs. Neither contains any robotics or continuous-control experiment. Both assume perfectly verified (MaxRL) or deterministic (TailRL) rewards, and their gains appear only when success is rare (≈1% down to 0.01% initial success in the maze).
   - **MaxRL** ("Maximum Likelihood Reinforcement Learning", Tajwar et al., ICML 2026 Oral) normalises the group advantage by the mean reward. It thereby optimises a truncated maximum-likelihood objective that is a weighted sum of pass@k terms.
   - **TailRL** ("Tail-Likelihood Reinforcement Learning", Ramasubramanian et al., PREPRINT, Sept 2026) extends this to continuous rewards via an order-statistic advantage whose gradient is a harmonic (1/k) mixture of best-of-k gradients.
 - **Closest robotics precedents:**
@@ -260,6 +303,15 @@
   - Source: [Zanette-Labs/MaxRL site source](https://github.com/Zanette-Labs/MaxRL) [page source read].
   - The authors summarise it as "a single line of code (dividing by the mean reward in the advantage computation)", with gains "with perfect verifiers" — [Salakhutdinov on X](https://x.com/rsalakhu/status/2019507844161187916) [search snippet].
   - The code is built on verl (PyTorch). The Qwen3 runs used "4 nodes of 8xH200 GPUs". The repo includes a 17×17 maze — [maxrl README](https://github.com/tajwarfahim/maxrl).
+- **MaxRL — verified against the paper.** Source: [MaxRL preprint PDF in the project repo](https://github.com/Zanette-Labs/MaxRL/blob/master/site/static/pdf/MaxRL_Preprint.pdf) [pp. 1–8, 11–13 read].
+  - **Abstract framing.** RL is "the method of choice to train models in sampling-based setups with binary outcome feedback, such as navigation, code generation, and mathematical problem solving". The navigation citations are Thrun et al. 2005 and Anderson et al. 2018, but the experiments use text mazes, not robots.
+  - **Core identity.** ∇J_ML = Σ_k (1/k) ∇pass@k, so "Reinforcement learning optimizes a first-order approximation of the maximum likelihood objective".
+  - **Theorem 1.** The maximum-likelihood gradient is "the average gradient from successful trajectories only".
+  - **Estimator.** ĝ_N = (1/K) Σ r_i S_i is "an unbiased estimator for the MaxRL gradient of order T = N".
+  - **On-policy Algorithm 1, line 8:** ĝ(x) = (1/(N·r̂(x))) Σ_j (r_j − r̂(x)) S_j if r̂(x) > 0, else 0. In words, "the advantage is normalized by the per-task mean reward, rather than left unnormalized as in RLOO ... or normalized by the reward standard deviation as in GRPO".
+  - **Population weights w(p) on pass rate p:** RL = 1; GRPO = 1/√(p(1−p)); MaxRL(T) = (1−(1−p)^T)/p; ML = 1/p. GRPO's weight "inverts for sufficiently large pass rates", which up-weights very easy inputs.
+  - **Maze set-up.** "1 million unique 17 × 17 mazes" for training, 256 held out, and a lightweight transformer of "approximately 3M parameters" after brief supervised pretraining.
+  - **Stated limitations:** "Our work currently assumes a binary reward setting and does not extend directly to continuous or arbitrarily valued rewards". Future work: "continuous rewards, multi-turn reinforcement learning, and off-policy settings such as PPO-style training". Its headline test-time gains are stated "with a perfect verifier".
 - **TailRL — authors and status.** Ramasubramanian, Arora, Tajwar, Zeng (CMU); Wu, Zhou, Xu (Together AI); Feng (UC Berkeley/Impossible); Song, Singh, Salakhutdinov, Bagnell (CMU/Aurora); Schneider, Zanette (CMU). "Preprint, 2026" — [TailRL-website source](https://github.com/Zanette-Labs/TailRL-website) [page source read]. PREPRINT arXiv 2609.02987 (Sept 2026; code repo updated 11 Sep 2026 — [Zanette-Labs org](https://github.com/Zanette-Labs)).
 - **TailRL — objective and estimator** (project page "blog.html", read from the GitHub source):
   - "TailRL is the expected log tail-probability over uniformly sampled thresholds", with rewards rescaled to [0,1].
@@ -273,6 +325,17 @@
     - Code runtime optimisation: GRPO/RLOO settle at the "copy the input" reward of 1; gem5 timing means "noise cannot fake a gain".
   - **Robot / control:** "None appear"; there is no limitations section.
   - Source: [TailRL-website blog source](https://github.com/Zanette-Labs/TailRL-website) [page source read].
+- **TailRL — verified against the paper.** Source: [TailRL PDF in the project repo](https://github.com/Zanette-Labs/TailRL-website/blob/main/static/TailRL.pdf) [pp. 1–15, all main text, read].
+  - **Reward assumption:** "A deterministic reward function provides a scalar feedback for an input rollout pair r(x, z) ∈ [0, 1]", so "all randomness in the reward comes from the policy".
+  - **Finite estimator.** Rollout weights follow ω(r_(i)) = ω(r_(i−1)) + (r_(i) − r_(i−1))/(N − i + 1), with centred advantages A_i = ω(r_i) − ω̄. "the centered estimator is unbiased for ∇J^(N−1) rather than ∇J^(N)". In their words, "the rollout budget determines which member of the TailRL family is optimized".
+  - **Weighting.** Gradient weight φ′(p) on tail-probability p: RL = 1; TailRL(T) = (1−(1−p)^T)/p; TailRL = 1/p; PKPO = k_opt(1−p)^(k_opt−1).
+  - **ImageNet localisation.** N ∈ {16, 64, 256, 1024} training rollouts per input. "even at N = 16, TailRL exceeds both baselines trained at N = 1024". The cosine between the finite-N and population gradients "rises steadily toward exact agreement" as N grows (Fig. 6, N from 2^2 to 2^18).
+  - **Maze.** "All methods use the same initial policy and N = 16". Initial shortest-path success ranges "from approximately 1% down to 0.01%". "RLOO, GRPO and TailRL behave similarly when the initial policy produces shortest-path successes frequently, but diverge as the initial success rate falls ... The advantage of TailRL is therefore concentrated where high-reward rollouts are attainable but rare."
+  - **GUI grounding.** TailRL matches RLOO's Pass@1024 "with 8 rather than 1024 inference rollouts" (3B) and 4 rollouts (7B). Pass@1 is similar for TailRL and RLOO.
+  - **Code optimisation (N = 16; Qwen3-1.7B).** GRPO and RLOO converge on copying the input. TailRL "maintains substantially higher entropy and continues producing risky rewrites. This lowers single-rollout correctness". It reaches a mean Best-of-1024 speedup of 7.7× against 0.98× (GRPO) and 0.96× (RLOO).
+  - **Conclusion:** "its gains were largest when high-reward rollouts were rare or when training was drawn toward a common but suboptimal behavior".
+  - **No limitations section** in the main text. Related work distinguishes TailRL from risk-sensitive/CVaR RL, which optimises "a tail statistic at a chosen risk level".
+  - **Compute:** NCSA DeltaAI and ACCESS allocations (acknowledgements); GPU counts per experiment are in the README only (Q4 bullets above).
 - **TailRL — code.** "The RL framework is a fork of verl" (PyTorch); no JAX.
   - The maze is a "17×17" text gridworld with a "3.9M-parameter decoder", swept over seven initial policies whose shortest-path success runs "from 0.83% down to 0.012%". 1 GPU for maze and ImageNet; multiple GPUs for GUI grounding.
   - Source: [Zanette-Labs/TailRL README](https://github.com/Zanette-Labs/TailRL) [README read].
@@ -300,6 +363,13 @@
   - (iii) rare success under the initial policy (≤~1%, per the maze sweep);
   - (iv) deployment that genuinely selects among k samples with a verifier that is *the same* or as good as the training reward.
 - **Their natural robotics home** is training a *proposal generator* for a simulator-verified planner, as in DSO's symbolic-policy search or MPPI proposals. It is **not** on-robot RL, where (i) fails and RLOO already works from 4% success (RIPT-VLA).
+- **Three verified assumptions conflict with physical robots** (*inference from the papers' own text*):
+  1. **Deterministic rewards.** TailRL assumes the reward is deterministic, so "all randomness in the reward comes from the policy". MaxRL assumes binary correctness from a perfect verifier. Physical outcomes are stochastic: the same action can succeed or fail. Up-weighting rare high rewards (1/p) then partly rewards luck. With a group of N = 16, the single lucky success in a group gets the largest advantage (MaxRL: N/K − 1 = 15 for K = 1).
+  2. **Rollout groups from one context.** The papers use N = 16 (maze, code) and up to 1024 (ImageNet) per input. On hardware, that is 16 identical resets per context.
+  3. **Worse single-shot reliability.** TailRL can lower single-sample correctness (code optimisation: "This lowers single-rollout correctness"). A robot that executes once, with no verifier, may become *less* reliable under a tail objective. Any robotics use must report k = 1 performance alongside best-of-k.
+- **MaxRL's own future-work list** ("multi-turn" and "off-policy" settings) names exactly what robot RL usually needs, such as off-policy SAC in HIL-SERL. So the published estimators apply only to on-policy, trajectory-level outcome rewards, as in RIPT-VLA- or SimpleVLA-RL-style sim training.
+- **Upper-tail selection is already used in large-scale robot RL, though not as a pass@k objective.** RECAP labels the top 30% of advantages "positive" and trains an advantage-conditioned policy — [RLinf recap.rst](https://github.com/RLinf/RLinf/blob/main/docs/source-en/rst_source/examples/embodied/recap.rst). Risk-seeking PG trains only on samples above the ε-quantile (DSO).
+  - *Inference:* quantile-based selection of the upper tail already appears in robot RL. What is absent is a training objective explicitly tied to best-of-k *deployment* with a pre-execution verifier.
 - **This explains the student's earlier negative result** (TailRL ≈ RLOO; a ten-line controller wins). Shaped checkpoint navigation lacks rare-success structure, and the deployment there was not best-of-k.
 - **Tail objectives magnify verifier error.** TailRL's own description says the top rollout's gap is worth up to N× a common gap. With an imperfect judge, the top-ranked rollouts are exactly where false positives concentrate (winner's curse).
   - So tail objectives should *amplify* verifier error relative to RLOO. This is a testable hypothesis (*my inference*), consistent with the Tail-and-Judge claim that planners exploit optimistic model error.
@@ -308,7 +378,9 @@
 
 ### Gaps
 - **Not verified this session** (search budget exhausted): multiple-choice learning (Guzman-Rivera et al., NeurIPS 2012), stochastic MCL (Lee et al., NeurIPS 2016), WTA/minADE_k in trajectory prediction, "Learning Sampling Distributions for Model Predictive Control" (Sacks & Boots; CoRL 2022 per background knowledge, unverified), and inference-aware fine-tuning for best-of-N (Chow et al.).
-- **Not read:** the PKPO paper; the MaxRL and TailRL full papers on arXiv (only project pages and READMEs); the Tail-and-Judge thesis experiments (unknown whether the judge part uses robot or continuous-control tasks).
+- **Not read:** the PKPO paper, and the Tail-and-Judge thesis experiments (unknown whether the judge part uses robot or continuous-control tasks).
+- **MaxRL and TailRL main texts were read** from author-hosted PDFs. Their appendices were not read: TailRL Appendix B "evaluated domains" and maze details; MaxRL Appendix E.1 maze details.
+- **Possible version differences.** The MaxRL PDF read is the preprint, not the ICML camera-ready.
 - **Not run:** a targeted search for "pass@k" or "best-of-N-aware" training of robot action proposals. So "no overlap found" is weak evidence.
 
 ## Q5. Bristol lineage: Winfield's "consequence engine" (simulate before acting) and its relation to MPPI and best-of-k
@@ -441,11 +513,18 @@
 - **(i) Skills:** MuJoCo modelling and system identification, sampling-based MPC, imitation learning with LeRobot, camera calibration and fiducial tracking, experimental statistics; optionally the student's JAX group-relative RL for the TailRL arm.
 - **(j) Bristol/BRL:** the Winfield consequence-engine lineage (simulate before acting) is the natural local framing (unverified, Q5). No other BRL people came up in this scope.
 - **Optional TailRL arm.** Train the proposal policy in the verifier scene with RLOO versus TailRL (the student's JAX code). Test on hardware whether TailRL proposals show a larger predicted-minus-real gap.
+  - Always report k = 1 success as well. The TailRL paper itself reports lower single-rollout correctness in its code task.
+  - Use the papers' group size (N = 16) so the comparison matches the published set-up.
   - Kill: if verifier errors are uncorrelated with the proposals' tail (rank correlation of verifier score error with verifier score ≈ 0 in simulation), the arm has nothing to show.
+  - Methods caveat: TailRL assumes deterministic rewards. Train it against the *deterministic* simulator verifier, and treat physical stochasticity as part of what is being measured.
 
 #### Tempting but fails (filter named)
-1. **RL post-training (RIPT/SimpleVLA-RL/πRL-style) of SmolVLA or another VLA on an SO-101.** Fails 6: SmolVLA training is ~10–16 GB at batch 8; VLA RL recipes use 3–6 GPUs (RIPT) or 8×A800 80 GB (SimpleVLA-RL). Fails 5: crowded (RIPT-VLA, SimpleVLA-RL, VLA-RL, πRL; RLinf already lists SO101).
-2. **TailRL/MaxRL versus RLOO for robot policy RL** (simulation or real). Fails 4: method-first. Fails 2: no rare-success structure, and hand-coded controllers win (the student's own result). Fails 6 on real robots: same-context groups need identical resets. RIPT-VLA shows RLOO already climbs from 4% to 97+% in simulation.
+1. **RL post-training (RIPT/SimpleVLA-RL/πRL-style) of SmolVLA or another VLA on an SO-101.** Fails 6: SmolVLA training is ~10–16 GB at batch 8; VLA RL recipes use 3–6 GPUs (RIPT) or 8×A800 80 GB (SimpleVLA-RL). Fails 5: crowded in simulation (RIPT-VLA, SimpleVLA-RL, VLA-RL, πRL).
+   - RLinf lists SO101 hardware but states it "does not yet provide a supported real-world task or training workflow for SO101". So the *real SO-101* niche is open, but only for someone with multi-GPU access.
+2. **TailRL/MaxRL versus RLOO for robot policy RL** (simulation or real). Fails 4: method-first. Fails 2: no rare-success structure, and hand-coded controllers win (the student's own result). Fails 6 on real robots: same-context groups need identical resets.
+   - RIPT-VLA shows RLOO already climbs from 4% to 97+% in simulation.
+   - The TailRL paper says its methods "behave similarly when the initial policy produces shortest-path successes frequently" and diverge only from ~1% down to 0.01% initial success.
+   - The papers assume deterministic (TailRL) or perfectly verified binary (MaxRL) rewards, which physical outcomes are not.
 3. **VLM-verifier best-of-N for a VLA on an SO-101 using LeRobot reward models** (ROBOMETER 4B, TOPReward 8B with ~16 GB weights). Fails 6 (verifier size and latency: RoboMonkey 1.5 Hz on server hardware). Fails the (b) criterion: these models judge recorded video after execution and cannot rank actions before acting without a world model.
 4. **Video world model as verifier or evaluator for a low-cost arm** (Ctrl-World/WorldGym-style). Fails 6 (heavy generative models; Jetson-class support is Thor-only in NVIDIA's docs) and 5 (crowded: WorldGym, WorldEval, Ctrl-World, dWorldEval, BWM, GeniWorld in 2025–2026).
 5. **3pi+ simulate-before-acting, or MPPI with learned or tail-trained proposals.** Fails 2 and 4: 2-D action, weak multimodality without exteroception, cheap rollouts, and hand-coded controllers already win. It reduces to model-mismatch MPC. It can instead inform the student's open "adaptive motion control under wheel/surface/payload changes" study as a measurement chapter.
